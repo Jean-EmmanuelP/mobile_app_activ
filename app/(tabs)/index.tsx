@@ -1,75 +1,186 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { TabScrollView } from '@/components/TabScrollView';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const submission = useSelector((state: RootState) => state.questionnaire.currentSubmission);
+  const isCompleted = useSelector((state: RootState) => state.questionnaire.isCompleted);
+  const secureKey = useSelector((state: RootState) => state.questionnaire.secureKey);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ThemedView style={styles.container}>
+      <TabScrollView>
+        <View style={styles.header}>
+          <ThemedText type="title" style={styles.title}>
+            Tableau de bord
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Bienvenue sur votre espace santé
+          </ThemedText>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>État du questionnaire</Text>
+          
+          {submission ? (
+            <View>
+              <View style={styles.statusContainer}>
+                <Text style={styles.statusLabel}>Statut:</Text>
+                <Text style={[
+                  styles.statusValue,
+                  isCompleted ? styles.statusCompleted : styles.statusInProgress
+                ]}>
+                  {isCompleted ? '✓ Complété' : '⏳ En cours'}
+                </Text>
+              </View>
+
+              {secureKey && (
+                <View style={styles.codeContainer}>
+                  <Text style={styles.codeLabel}>Code sécurisé:</Text>
+                  <Text style={styles.codeValue}>{secureKey}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => router.push('/(tabs)/questionnaire')}
+              >
+                <Text style={styles.buttonText}>
+                  {isCompleted ? 'Voir mon questionnaire' : 'Continuer le questionnaire'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.noQuestionnaireText}>
+                Aucun questionnaire en cours
+              </Text>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => router.push('/(tabs)/questionnaire')}
+              >
+                <Text style={styles.buttonText}>
+                  Commencer le questionnaire
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {isCompleted && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Prochaines étapes</Text>
+            <Text style={styles.infoText}>
+              Votre questionnaire a été soumis avec succès. 
+              Partagez votre code sécurisé avec votre médecin pour qu'il puisse accéder à vos réponses.
+            </Text>
+          </View>
+        )}
+      </TabScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    paddingTop: 60,
+  },
+  header: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 32,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  card: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#2c3e50',
+  },
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 10,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  statusLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginRight: 10,
+    color: '#666',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  statusValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statusCompleted: {
+    color: '#50C878',
+  },
+  statusInProgress: {
+    color: '#FFA500',
+  },
+  codeContainer: {
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 15,
+  },
+  codeLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  codeValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    letterSpacing: 1,
+  },
+  button: {
+    backgroundColor: '#4A90E2',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  noQuestionnaireText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
   },
 });
