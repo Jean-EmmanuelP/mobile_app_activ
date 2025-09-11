@@ -4,12 +4,11 @@ import {
   View,
   Text,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Clipboard,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { TabScrollView } from '@/components/TabScrollView';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -26,7 +25,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import type { Question, Answer, Submission, Section } from '@/lib/database.types';
+import type { Answer, Submission } from '@/lib/database.types';
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -34,14 +33,15 @@ import {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
-interface QuestionWithChildren extends Question {
-  children?: QuestionWithChildren[];
-}
-
-interface SectionWithQuestions extends Section {
-  questions: QuestionWithChildren[];
-}
+import Question from '@/components/Question';
+import {
+  QuestionWithChildren,
+  SectionWithQuestions,
+  buildQuestionnaireTree,
+  evaluateCondition,
+  parseSelectOptions,
+  validateRequiredQuestions,
+} from '@/lib/utils';
 
 function QuestionnaireContent() {
   const router = useRouter();
@@ -62,6 +62,7 @@ function QuestionnaireContent() {
   const [isCompleted, setIsCompleted] = useState(reduxIsCompleted);
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const snapPoints = useMemo(() => ['50%', '75%'], []);
 
   // Callbacks pour la modal
@@ -79,16 +80,6 @@ function QuestionnaireContent() {
     initializeQuestionnaire();
   }, []);
 
-  // Fonction pour construire l'arbre de questions avec hiérarchie
-  const buildQuestionTree = (questions: Question[], parentId: number | null = null): QuestionWithChildren[] => {
-    return questions
-      .filter(q => q.parent_id === parentId)
-      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-      .map(q => ({
-        ...q,
-        children: buildQuestionTree(questions, q.id)
-      }));
-  };
 
   const initializeQuestionnaire = async () => {
     try {
@@ -142,7 +133,7 @@ function QuestionnaireContent() {
             'Code sécurisé généré',
             `Votre code sécurisé est: ${newSubmission.secure_key}\n\nGardez ce code, il vous permettra de reprendre le questionnaire ou de le partager avec votre médecin.`,
             [
-              { text: 'Copier', onPress: () => Clipboard.setString(newSubmission.secure_key!) },
+              { text: 'Copier', onPress: () => Clipboard.setStringAsync(newSubmission.secure_key!) },
               { text: 'OK' }
             ]
           );
@@ -167,18 +158,62 @@ function QuestionnaireContent() {
       if (questionsError) throw questionsError;
 
       // Organiser les questions par section et construire la hiérarchie
-      const sectionsWithQ: SectionWithQuestions[] = (sectionsData || []).map(section => {
-        const sectionQuestions = (questionsData || []).filter(q => q.section_id === section.id);
-        const tree = buildQuestionTree(sectionQuestions);
-        console.log(`Section ${section.name}: ${tree.length} top-level questions`);
-        tree.forEach(q => {
-          console.log(`- Question ${q.id}: ${q.text} (${q.children?.length || 0} children)`);
-        });
-        return {
-          ...section,
-          questions: tree
-        };
+      let answersData: any[] = [];
+      if (reduxSubmission) {
+        const { data } = await supabase
+          .from('answers')
+          .select('*')
+          .eq('submission_id', reduxSubmission.id);
+        answersData = data || [];
+      }
+      
+      const sectionsWithQ = buildQuestionnaireTree(
+        sectionsData || [],
+        questionsData || [],
+        answersData
+      );
+
+      // Initialiser les valeurs par défaut pour les questions yesno/boolean
+      const defaultAnswers: Record<number, string> = {};
+      const currentAnswers = { ...answers };
+      
+      (questionsData || []).forEach((question: any) => {
+        // Si la question est de type yesno/boolean et n'a pas de réponse existante
+        if ((question.type === 'yesno' || question.type === 'boolean') && 
+            !currentAnswers[question.id] && 
+            !answersData.some(a => a.question_id === question.id)) {
+          // Définir "non" comme valeur par défaut
+          defaultAnswers[question.id] = 'non';
+          currentAnswers[question.id] = 'non';
+        }
       });
+      
+      // Mettre à jour les réponses avec les valeurs par défaut
+      if (Object.keys(defaultAnswers).length > 0) {
+        setAnswers(currentAnswers);
+        dispatch(setReduxAnswers(currentAnswers));
+        
+        // Sauvegarder les valeurs par défaut dans la base de données si on a une submission
+        const submissionId = submission?.id || reduxSubmission?.id;
+        if (submissionId) {
+          for (const [questionId, value] of Object.entries(defaultAnswers)) {
+            try {
+              await supabase
+                .from('answers')
+                .upsert({
+                  submission_id: submissionId,
+                  question_id: parseInt(questionId),
+                  value: value,
+                  additional_notes: null,
+                } as any, {
+                  onConflict: 'submission_id,question_id'
+                });
+            } catch (error) {
+              console.log('Error saving default value:', error);
+            }
+          }
+        }
+      }
 
       setSectionsWithQuestions(sectionsWithQ);
     } catch (error) {
@@ -200,7 +235,7 @@ function QuestionnaireContent() {
           question_id: questionId,
           value: value,
           additional_notes: notes || null,
-        }, {
+        } as any, {
           onConflict: 'submission_id,question_id'
         });
 
@@ -209,7 +244,7 @@ function QuestionnaireContent() {
       // Mettre à jour la submission pour rafraîchir updated_at
       await supabase
         .from('submissions')
-        .update({ updated_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() } as any)
         .eq('id', submission.id);
 
     } catch (error) {
@@ -235,6 +270,41 @@ function QuestionnaireContent() {
         }
         return null;
       };
+      
+      // Nettoyer les réponses des questions qui deviennent invisibles
+      const cleanupHiddenAnswers = (questions: QuestionWithChildren[]) => {
+        questions.forEach(q => {
+          // Si la question a des enfants, vérifier leur visibilité
+          if (q.children) {
+            q.children.forEach(child => {
+              // Utiliser les nouvelles réponses pour évaluer les conditions
+              const shouldShow = evaluateCondition(child.condition, newAnswers[child.parent_id!], newAnswers);
+              if (!shouldShow && newAnswers[child.id]) {
+                console.log(`Removing answer for hidden question ${child.id}: "${child.text}"`);
+                delete newAnswers[child.id];
+                // Supprimer aussi de la base de données
+                if (submission) {
+                  supabase
+                    .from('answers')
+                    .delete()
+                    .eq('submission_id', submission.id)
+                    .eq('question_id', child.id)
+                    .then(({ error }) => {
+                      if (error) console.error('Error deleting hidden answer:', error);
+                    });
+                }
+              }
+              // Récursion pour les sous-enfants
+              if (child.children) {
+                cleanupHiddenAnswers(child.children);
+              }
+            });
+          }
+        });
+      };
+      
+      // Nettoyer les réponses cachées
+      cleanupHiddenAnswers(allQuestions);
       
       const currentQuestion = findQuestionById(questionId, allQuestions);
       if (currentQuestion?.parent_id) {
@@ -271,207 +341,81 @@ function QuestionnaireContent() {
 
   // Vérifier si une sous-question doit être affichée selon la condition
   const shouldShowQuestion = (question: QuestionWithChildren): boolean => {
-    // Si pas de condition ou pas de parent, toujours afficher
-    if (!question.condition || !question.parent_id) {
+    // Toujours afficher les questions sans condition
+    if (!question.condition) {
       return true;
     }
     
-    const condition = question.condition as any;
-    const parentAnswer = answers[question.parent_id];
-    
-    // Log pour debug
-    console.log(`Checking visibility for question ${question.id}:`, {
-      parentId: question.parent_id,
-      parentAnswer,
-      condition,
-      shouldShow: false
-    });
-    
-    // Vérifier différents formats de condition
-    if (condition.parent_value !== undefined) {
-      // Format: {"parent_value": "oui"}
-      return parentAnswer === condition.parent_value;
-    } else if (condition.show_if !== undefined) {
-      // Format: {"show_if": "value"}
-      return parentAnswer === condition.show_if;
-    } else if (typeof condition === 'string') {
-      // Format direct: "oui"
-      return parentAnswer === condition;
-    }
-    
-    // Par défaut, afficher la question
-    return true;
+    // Si la question a une condition mais pas de parent_id, utiliser les réponses globales
+    const parentValue = question.parent_id ? answers[question.parent_id] : undefined;
+    return evaluateCondition(question.condition, parentValue, answers);
   };
 
   const renderQuestion = (question: QuestionWithChildren, level: number = 0): React.ReactNode => {
-    if (!shouldShowQuestion(question)) return null;
-
     const answer = answers[question.id] || '';
     const notes = additionalNotes[question.id] || '';
 
-    // Pour les questions de type "group", afficher uniquement le titre et les sous-questions
-    if (question.type === 'group') {
-      return (
-        <View key={question.id}>
-          <View style={[styles.groupContainer, { marginLeft: level * 20 }]}>
-            <Text style={styles.groupTitle}>
-              {question.text}
-              {question.is_required && <Text style={styles.required}> *</Text>}
-            </Text>
-            {answer && (
-              <View style={styles.groupStatus}>
-                <Text style={styles.groupStatusText}>
-                  Réponse du groupe: {answer === 'oui' ? '✓ Oui' : '✗ Non'}
-                </Text>
-              </View>
-            )}
-            {question.notes && (
-              <Text style={styles.questionNotes}>{question.notes}</Text>
-            )}
-          </View>
-          
-          {/* Rendre les sous-questions du groupe */}
-          {question.children && question.children.length > 0 && 
-            question.children.map(child => renderQuestion(child, level + 1))
-          }
-        </View>
-      );
+    // Debug pour vérifier les sous-questions
+    if (question.children && question.children.length > 0) {
+      console.log(`Question ${question.id} "${question.text}" has ${question.children.length} children:`);
+      question.children.forEach(child => {
+        console.log(`  - Child ${child.id}: "${child.text}" (visible: ${shouldShowQuestion(child)})`);
+      });
     }
 
     return (
-      <View key={question.id}>
-        <View style={[styles.questionContainer, { marginLeft: level * 20 }]}>
-          <Text style={[styles.questionText, level > 0 && styles.subQuestionText]}>
-            {level > 0 && '→ '}
-            {question.text}
-            {question.is_required && <Text style={styles.required}> *</Text>}
-          </Text>
-
-          {question.type === 'yesno' && (
-            <View style={styles.yesnoContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.yesnoButton,
-                  answer === 'oui' && styles.yesnoButtonActive
-                ]}
-                onPress={() => handleAnswerChange(question.id, 'oui')}
-              >
-                <Text style={[
-                  styles.yesnoText,
-                  answer === 'oui' && styles.yesnoTextActive
-                ]}>Oui</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.yesnoButton,
-                  answer === 'non' && styles.yesnoButtonActive
-                ]}
-                onPress={() => handleAnswerChange(question.id, 'non')}
-              >
-                <Text style={[
-                  styles.yesnoText,
-                  answer === 'non' && styles.yesnoTextActive
-                ]}>Non</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {question.type === 'text' && (
-            <TextInput
-              style={styles.textInput}
-              value={answer}
-              onChangeText={(text) => handleAnswerChange(question.id, text)}
-              placeholder="Votre réponse..."
-              multiline
-            />
-          )}
-
-          {question.type === 'number' && (
-            <TextInput
-              style={styles.textInput}
-              value={answer}
-              onChangeText={(text) => handleAnswerChange(question.id, text)}
-              placeholder="Entrez un nombre..."
-              keyboardType="numeric"
-            />
-          )}
-
-          {question.type === 'select' && question.options && (() => {
-            // Parser les options correctement
-            let displayValue = 'Choisir une option...';
-            if (answer) {
-              const opts = question.options as any;
-              if (Array.isArray(opts)) {
-                displayValue = answer;
-              } else if (opts.values && Array.isArray(opts.values)) {
-                displayValue = answer;
-              } else if (typeof opts === 'object') {
-                displayValue = opts[answer] || answer;
-              } else {
-                displayValue = answer;
+      <Question
+        key={question.id}
+        question={question}
+        value={answer}
+        notes={notes}
+        onAnswerChange={handleAnswerChange}
+        onNotesChange={handleNotesChange}
+        onOpenSelectModal={handlePresentModal}
+        level={level}
+        isEditable={true}
+        shouldShowQuestion={shouldShowQuestion}
+      >
+        {question.children && question.children.length > 0 && (
+          <View>
+            {question.children.map((child, index) => {
+              // Vérifier explicitement si la sous-question doit être affichée
+              const shouldShow = shouldShowQuestion(child);
+              console.log(`Child ${index + 1}/${question.children?.length || 0} of Q${question.id}: Q${child.id} "${child.text.substring(0, 30)}..." - visible: ${shouldShow}`);
+              
+              if (!shouldShow) {
+                return null;
               }
-            }
-            
-            return (
-              <TouchableOpacity
-                style={styles.selectInput}
-                onPress={() => handlePresentModal(question.id)}
-              >
-                <Text style={[styles.selectInputText, !answer && styles.selectInputPlaceholder]}>
-                  {displayValue}
-                </Text>
-                <Text style={styles.selectInputArrow}>▼</Text>
-              </TouchableOpacity>
-            );
-          })()}
-
-          {question.notes && (
-            <Text style={styles.questionNotes}>{question.notes}</Text>
-          )}
-
-          <TextInput
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={(text) => handleNotesChange(question.id, text)}
-            placeholder="Notes additionnelles (optionnel)..."
-            multiline
-          />
-        </View>
-
-        {/* Rendre les sous-questions immédiatement après la question parente */}
-        {question.children && question.children.length > 0 && 
-          question.children.map(child => renderQuestion(child, level + 1))
-        }
-      </View>
+              return (
+                <View key={child.id}>
+                  {renderQuestion(child, level + 1)}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </Question>
     );
   };
 
   const checkRequiredQuestions = (questions: QuestionWithChildren[]): boolean => {
-    console.log('Checking required questions:', questions.length, 'questions');
-    console.log('Current answers:', answers);
+    const { isValid, missingQuestions } = validateRequiredQuestions(
+      questions,
+      answers,
+      shouldShowQuestion
+    );
     
-    if (!questions || questions.length === 0) {
-      console.log('No questions in this section');
-      return true;
+    if (!isValid && missingQuestions.length > 0) {
+      console.log('=== QUESTIONS REQUISES MANQUANTES ===');
+      missingQuestions.forEach(q => {
+        console.log(`- Question ${q.id}: "${q.text}"`);
+        console.log(`  Type: ${q.type}, Parent: ${q.parent_id}, Visible: ${shouldShowQuestion(q)}`);
+        console.log(`  Réponse actuelle: ${answers[q.id] || 'AUCUNE'}`);
+      });
+      console.log('======================================');
     }
     
-    for (const question of questions) {
-      if (shouldShowQuestion(question)) {
-        console.log(`Checking question ${question.id}: "${question.text}", required: ${question.is_required}, answer: ${answers[question.id]}`);
-        
-        if (question.is_required && !answers[question.id]) {
-          console.log(`Missing required answer for question ${question.id}`);
-          return false;
-        }
-        
-        if (question.children && question.children.length > 0) {
-          if (!checkRequiredQuestions(question.children)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
+    return isValid;
   };
 
   const handleNextSection = () => {
@@ -494,6 +438,11 @@ function QuestionnaireContent() {
       const newIndex = currentSectionIndex + 1;
       setCurrentSectionIndex(newIndex);
       dispatch(setReduxSectionIndex(newIndex));
+      
+      // Scroll vers le haut de la page
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+      }, 100);
     }
   };
 
@@ -502,6 +451,11 @@ function QuestionnaireContent() {
       const newIndex = currentSectionIndex - 1;
       setCurrentSectionIndex(newIndex);
       dispatch(setReduxSectionIndex(newIndex));
+      
+      // Scroll vers le haut de la page
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+      }, 100);
     }
   };
 
@@ -545,14 +499,80 @@ function QuestionnaireContent() {
     try {
       setSubmitting(true);
 
+      // Construire le JSON final avec uniquement les questions visibles et répondues
+      const finalAnswers: any = {};
+      const allQuestions: QuestionWithChildren[] = [];
+      
+      // Collecter toutes les questions
+      const collectQuestions = (questions: QuestionWithChildren[]) => {
+        questions.forEach(q => {
+          allQuestions.push(q);
+          if (q.children) {
+            collectQuestions(q.children);
+          }
+        });
+      };
+      
+      sectionsWithQuestions.forEach(section => {
+        collectQuestions(section.questions);
+      });
+      
+      // Filtrer uniquement les questions visibles et avec réponse
+      allQuestions.forEach(question => {
+        // Vérifier si la question est visible
+        if (shouldShowQuestion(question)) {
+          // Vérifier si la question a une réponse
+          const answer = answers[question.id];
+          if (answer !== undefined && answer !== '' && answer !== null) {
+            finalAnswers[question.id] = {
+              question_id: question.id,
+              question_text: question.text,
+              question_type: question.type,
+              answer: answer,
+              section_id: question.section_id,
+              parent_id: question.parent_id,
+              is_required: question.is_required,
+              additional_notes: additionalNotes[question.id] || null
+            };
+          }
+        }
+      });
+      
+      // Créer le JSON de soumission
+      const submissionData = {
+        submission_id: submission.id,
+        secure_key: submission.secure_key,
+        submitted_at: new Date().toISOString(),
+        answers_count: Object.keys(finalAnswers).length,
+        answers: finalAnswers
+      };
+      
+      // Afficher le JSON dans la console
+      console.log('=== JSON DE SOUMISSION ===');
+      console.log(JSON.stringify(submissionData, null, 2));
+      console.log('=========================');
+      
+      // Afficher aussi un résumé
+      console.log('=== RÉSUMÉ ===');
+      console.log(`Nombre total de réponses: ${Object.keys(finalAnswers).length}`);
+      console.log(`Questions visibles répondues:`);
+      Object.values(finalAnswers).forEach((item: any) => {
+        console.log(`  - Q${item.question_id} (${item.question_type}): "${item.answer}"`);
+      });
+      console.log('===============');
+      
+      // LIGNE À DÉCOMMENTER POUR EMPÊCHER LA SOUMISSION RÉELLE
+      return; // Décommentez cette ligne pour tester sans soumettre
+      
       // Mettre à jour le statut de la submission
+      const currentCount = submission.submission_count || 0;
       const { error } = await supabase
         .from('submissions')
         .update({
           status: 'submitted',
-          submission_count: 1,
+          submission_count: currentCount + 1,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', submission.id);
 
       if (error) throw error;
@@ -593,7 +613,7 @@ function QuestionnaireContent() {
           
           <View style={styles.secureKeyContainer}>
             <Text style={styles.secureKeyLabel}>Votre code sécurisé</Text>
-            <TouchableOpacity onPress={() => submission?.secure_key && Clipboard.setString(submission.secure_key)}>
+            <TouchableOpacity onPress={() => submission?.secure_key && Clipboard.setStringAsync(submission.secure_key)}>
               <Text style={styles.secureKeyValue}>{submission?.secure_key}</Text>
             </TouchableOpacity>
             <Text style={styles.secureKeyHint}>
@@ -635,18 +655,31 @@ function QuestionnaireContent() {
           </Text>
         )}
         {submission?.secure_key && (
-          <TouchableOpacity onPress={() => Clipboard.setString(submission.secure_key!)}>
+          <TouchableOpacity onPress={() => Clipboard.setStringAsync(submission.secure_key!)}>
             <Text style={styles.secureKeyHeader}>Code: {submission.secure_key}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <TabScrollView style={styles.scrollView}>
+      <TabScrollView 
+        style={styles.scrollView}
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={true}
+      >
         {currentSection?.description && (
           <Text style={styles.sectionDescription}>{currentSection.description}</Text>
         )}
         
-        {currentSection?.questions.map(question => renderQuestion(question, 0))}
+        <View>
+          {currentSection?.questions.map((question, index) => {
+            console.log(`Rendering top-level question ${index + 1}/${currentSection.questions.length}: ${question.text}`);
+            return (
+              <View key={question.id}>
+                {renderQuestion(question, 0)}
+              </View>
+            );
+          })}
+        </View>
       </TabScrollView>
 
       {/* Bottom Sheet Modal pour les selects */}
@@ -683,31 +716,7 @@ function QuestionnaireContent() {
               
               if (!question?.options) return null;
               
-              // Parser les options correctement selon le format
-              let options: { key: string; value: string }[] = [];
-              const opts = question.options as any;
-              
-              if (Array.isArray(opts)) {
-                // Format direct: ["option1", "option2"]
-                options = opts.map((opt: any) => ({ 
-                  key: String(opt), 
-                  value: String(opt) 
-                }));
-              } else if (opts && typeof opts === 'object') {
-                if (opts.values && Array.isArray(opts.values)) {
-                  // Format {"values": ["option1", "option2"]}
-                  options = opts.values.map((opt: any) => ({ 
-                    key: String(opt), 
-                    value: String(opt) 
-                  }));
-                } else {
-                  // Format {"key1": "value1", "key2": "value2"}
-                  options = Object.entries(opts).map(([key, value]) => ({ 
-                    key, 
-                    value: String(value) 
-                  }));
-                }
-              }
+              const options = parseSelectOptions(question.options);
               
               return options.map(({ key, value }) => (
                 <TouchableOpacity

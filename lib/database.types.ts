@@ -52,6 +52,7 @@ export interface Database {
           notes: string | null
           created_at: string | null
           updated_at: string | null
+          range: Json | null
         }
         Insert: {
           id?: number
@@ -66,6 +67,7 @@ export interface Database {
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
+          range?: Json | null
         }
         Update: {
           id?: number
@@ -80,6 +82,7 @@ export interface Database {
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
+          range?: Json | null
         }
       }
       sections: {

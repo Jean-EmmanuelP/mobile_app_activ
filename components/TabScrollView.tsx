@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { 
   ScrollView, 
   ScrollViewProps, 
@@ -12,11 +12,11 @@ interface TabScrollViewProps extends ScrollViewProps {
   children: React.ReactNode;
 }
 
-export const TabScrollView: React.FC<TabScrollViewProps> = ({ 
+export const TabScrollView = forwardRef<ScrollView, TabScrollViewProps>(({ 
   children, 
   contentContainerStyle,
   ...props 
-}) => {
+}, ref) => {
   const { hideTabBar, showTabBar, lastScrollY } = useTabBar();
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -42,6 +42,7 @@ export const TabScrollView: React.FC<TabScrollViewProps> = ({
 
   return (
     <ScrollView
+      ref={ref}
       {...props}
       contentContainerStyle={[
         { paddingBottom: Platform.OS === 'ios' ? 110 : 90 },
@@ -56,4 +57,6 @@ export const TabScrollView: React.FC<TabScrollViewProps> = ({
       {children}
     </ScrollView>
   );
-};
+});
+
+TabScrollView.displayName = 'TabScrollView';
