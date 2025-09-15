@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -7,15 +8,16 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { TabScrollView } from '@/components/TabScrollView';
 
-export default function HomeScreen() {
+function HomeScreenContent() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const submission = useSelector((state: RootState) => state.questionnaire.currentSubmission);
   const isCompleted = useSelector((state: RootState) => state.questionnaire.isCompleted);
   const secureKey = useSelector((state: RootState) => state.questionnaire.secureKey);
 
   return (
-    <ThemedView style={styles.container}>
-      <TabScrollView>
+    <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
+        <TabScrollView>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Tableau de bord
@@ -82,15 +84,23 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
-      </TabScrollView>
+        </TabScrollView>
     </ThemedView>
+  );
+}
+
+export default function HomeScreen() {
+  return (
+    <SafeAreaProvider>
+      <HomeScreenContent />
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    backgroundColor: 'white',
   },
   header: {
     paddingHorizontal: 20,
@@ -118,7 +128,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
     marginBottom: 15,
     color: '#2c3e50',
   },
@@ -129,13 +139,13 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
     marginRight: 10,
     color: '#666',
   },
   statusValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
   },
   statusCompleted: {
     color: '#50C878',
@@ -151,12 +161,13 @@ const styles = StyleSheet.create({
   },
   codeLabel: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     color: '#666',
     marginBottom: 5,
   },
   codeValue: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
     color: '#4A90E2',
     letterSpacing: 1,
   },
@@ -170,16 +181,18 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   noQuestionnaireText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     color: '#666',
     textAlign: 'center',
     marginVertical: 20,
   },
   infoText: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     color: '#666',
     lineHeight: 20,
   },

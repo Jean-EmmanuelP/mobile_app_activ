@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { TabScrollView } from '@/components/TabScrollView';
 import { useRouter } from 'expo-router';
@@ -30,7 +31,7 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetBackdrop,
-  BottomSheetView,
+  BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Question from '@/components/Question';
@@ -44,6 +45,7 @@ import {
 } from '@/lib/utils';
 
 function QuestionnaireContent() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const dispatch = useDispatch();
   const reduxSubmission = useSelector((state: RootState) => state.questionnaire.currentSubmission);
@@ -75,6 +77,18 @@ function QuestionnaireContent() {
     setSelectedQuestionId(questionId);
     bottomSheetModalRef.current?.present();
   }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
 
   useEffect(() => {
     initializeQuestionnaire();
@@ -599,8 +613,8 @@ function QuestionnaireContent() {
   // Écran de fin avec rappel de la secure_key
   if (isCompleted) {
     return (
-      <ThemedView style={styles.container}>
-        <View style={styles.completedContainer}>
+      <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
+          <View style={styles.completedContainer}>
           <View style={styles.successIcon}>
             <Text style={styles.checkmark}>✓</Text>
           </View>
@@ -628,7 +642,7 @@ function QuestionnaireContent() {
             <Text style={styles.homeButtonText}>Retour à l'accueil</Text>
           </TouchableOpacity>
         </View>
-      </ThemedView>
+        </ThemedView>
     );
   }
 
@@ -636,8 +650,8 @@ function QuestionnaireContent() {
   const isLastSection = currentSectionIndex === sectionsWithQuestions.length - 1;
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
+        <View style={styles.header}>
         <View style={styles.progressBar}>
           <View 
             style={[
@@ -685,63 +699,65 @@ function QuestionnaireContent() {
       {/* Bottom Sheet Modal pour les selects */}
       <BottomSheetModal
         ref={bottomSheetModalRef}
+        index={0}
         snapPoints={snapPoints}
         onChange={handleSheetChanges}
         enablePanDownToClose={true}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop
-            {...props}
-            disappearsOnIndex={-1}
-            appearsOnIndex={0}
-          />
-        )}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.modalBackground}
+        handleIndicatorStyle={styles.handleIndicator}
+        handleStyle={styles.handleStyle}
       >
-        <BottomSheetView style={styles.bottomSheetContent}>
-          <Text style={styles.bottomSheetTitle}>Choisir une option</Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {selectedQuestionId && (() => {
-              // Chercher la question dans toutes les questions et sous-questions
-              const findQuestion = (questions: QuestionWithChildren[]): QuestionWithChildren | undefined => {
-                for (const q of questions) {
-                  if (q.id === selectedQuestionId) return q;
-                  if (q.children) {
-                    const found = findQuestion(q.children);
-                    if (found) return found;
-                  }
-                }
-                return undefined;
-              };
-              
-              const question = findQuestion(currentSection?.questions || []);
-              
-              if (!question?.options) return null;
-              
-              const options = parseSelectOptions(question.options);
-              
-              return options.map(({ key, value }) => (
+        {selectedQuestionId && (() => {
+          // Chercher la question dans toutes les questions et sous-questions
+          const findQuestion = (questions: QuestionWithChildren[]): QuestionWithChildren | undefined => {
+            for (const q of questions) {
+              if (q.id === selectedQuestionId) return q;
+              if (q.children) {
+                const found = findQuestion(q.children);
+                if (found) return found;
+              }
+            }
+            return undefined;
+          };
+          
+          const question = findQuestion(currentSection?.questions || []);
+          
+          if (!question?.options) return null;
+          
+          const options = parseSelectOptions(question.options);
+          
+          return (
+            <BottomSheetFlatList
+              data={options}
+              keyExtractor={(item) => String(item.key)}
+              ListHeaderComponent={() => (
+                <Text style={styles.bottomSheetTitle}>Choisir une option</Text>
+              )}
+              renderItem={({ item }) => (
                 <TouchableOpacity
-                  key={String(key)}
                   style={[
                     styles.bottomSheetOption,
-                    answers[selectedQuestionId] === key && styles.bottomSheetOptionActive
+                    answers[selectedQuestionId] === item.key && styles.bottomSheetOptionActive
                   ]}
                   onPress={() => {
-                    handleAnswerChange(selectedQuestionId, String(key));
+                    handleAnswerChange(selectedQuestionId, String(item.key));
                     bottomSheetModalRef.current?.dismiss();
                     setSelectedQuestionId(null);
                   }}
                 >
                   <Text style={[
                     styles.bottomSheetOptionText,
-                    answers[selectedQuestionId] === key && styles.bottomSheetOptionTextActive
+                    answers[selectedQuestionId] === item.key && styles.bottomSheetOptionTextActive
                   ]}>
-                    {String(value)}
+                    {String(item.value)}
                   </Text>
                 </TouchableOpacity>
-              ));
-            })()}
-          </ScrollView>
-        </BottomSheetView>
+              )}
+              contentContainerStyle={styles.bottomSheetContent}
+            />
+          );
+        })()}
       </BottomSheetModal>
 
       <View style={styles.navigationContainer}>
@@ -767,14 +783,14 @@ function QuestionnaireContent() {
           )}
         </TouchableOpacity>
       </View>
-    </ThemedView>
+      </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
+    backgroundColor: 'white',
   },
   loadingContainer: {
     flex: 1,
@@ -789,6 +805,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.6,
     marginTop: 5,
   },
@@ -806,9 +823,9 @@ const styles = StyleSheet.create({
   },
   secureKeyHeader: {
     fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
     color: '#4A90E2',
     marginTop: 5,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -816,6 +833,7 @@ const styles = StyleSheet.create({
   },
   sectionDescription: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.7,
     marginTop: 15,
     marginBottom: 10,
@@ -833,7 +851,7 @@ const styles = StyleSheet.create({
   },
   groupTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     marginBottom: 5,
     color: '#2c3e50',
   },
@@ -845,19 +863,22 @@ const styles = StyleSheet.create({
   },
   groupStatusText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
     color: '#4A90E2',
   },
   questionText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     marginBottom: 10,
   },
   subQuestionText: {
     fontSize: 15,
+    fontFamily: 'Inter_400Regular',
     fontStyle: 'italic',
   },
   questionNotes: {
     fontSize: 12,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.6,
     marginTop: 5,
     marginBottom: 5,
@@ -884,10 +905,11 @@ const styles = StyleSheet.create({
   },
   yesnoText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
   },
   yesnoTextActive: {
     color: 'white',
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
   },
   textInput: {
     borderWidth: 1,
@@ -896,6 +918,7 @@ const styles = StyleSheet.create({
     padding: 10,
     minHeight: 50,
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
   },
   selectInput: {
     flexDirection: 'row',
@@ -909,6 +932,7 @@ const styles = StyleSheet.create({
   },
   selectInputText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     flex: 1,
   },
   selectInputPlaceholder: {
@@ -916,18 +940,28 @@ const styles = StyleSheet.create({
   },
   selectInputArrow: {
     fontSize: 12,
+    fontFamily: 'Inter_400Regular',
     color: '#666',
     marginLeft: 10,
   },
   bottomSheetContent: {
-    flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
   },
   bottomSheetTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
     marginBottom: 20,
+    marginTop: 10,
     textAlign: 'center',
+  },
+  modalBackground: {
+    backgroundColor: 'white',
+  },
+  handleIndicator: {
+    backgroundColor: '#ccc',
+  },
+  handleStyle: {
+    backgroundColor: 'white',
   },
   bottomSheetOption: {
     padding: 15,
@@ -939,10 +973,11 @@ const styles = StyleSheet.create({
   },
   bottomSheetOptionText: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
   },
   bottomSheetOptionTextActive: {
     color: '#4A90E2',
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   notesInput: {
     marginTop: 10,
@@ -952,6 +987,7 @@ const styles = StyleSheet.create({
     padding: 8,
     minHeight: 40,
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
   },
   navigationContainer: {
     flexDirection: 'row',
@@ -975,11 +1011,11 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   navButtonTextPrimary: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     color: 'white',
   },
   completedContainer: {
@@ -1000,15 +1036,17 @@ const styles = StyleSheet.create({
   checkmark: {
     color: 'white',
     fontSize: 40,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
   },
   completedTitle: {
     fontSize: 24,
+    fontFamily: 'Inter_700Bold',
     marginBottom: 10,
     textAlign: 'center',
   },
   completedDescription: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.7,
     textAlign: 'center',
     marginBottom: 30,
@@ -1023,18 +1061,20 @@ const styles = StyleSheet.create({
   },
   secureKeyLabel: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.6,
     marginBottom: 10,
   },
   secureKeyValue: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
     color: '#4A90E2',
     letterSpacing: 1,
     marginBottom: 10,
   },
   secureKeyHint: {
     fontSize: 12,
+    fontFamily: 'Inter_400Regular',
     opacity: 0.5,
     textAlign: 'center',
   },
@@ -1048,16 +1088,18 @@ const styles = StyleSheet.create({
   homeButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
 });
 
 export default function QuestionnaireScreen() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <QuestionnaireContent />
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <BottomSheetModalProvider>
+          <QuestionnaireContent />
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

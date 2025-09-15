@@ -5,6 +5,8 @@ import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import HomeIcon from '@/components/svg/HomeIcon';
+import QuestionnaireIcon from '@/components/svg/QuestionnaireIcon';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { translateY } = useTabBar();
@@ -76,14 +78,14 @@ function TabLayoutContent() {
         name="index"
         options={{
           title: 'Accueil',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <HomeIcon width={28} height={28} fill={color} />,
         }}
       />
       <Tabs.Screen
         name="questionnaire"
         options={{
           title: 'Questionnaire',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.text.fill" color={color} />,
+          tabBarIcon: ({ color }) => <QuestionnaireIcon width={28} height={28} fill={color} />,
         }}
       />
     </Tabs>
@@ -118,18 +120,21 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 85 : 65,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    paddingTop: 10,
+    height: Platform.OS === 'ios' ? 90 : 70,
+    paddingBottom: Platform.OS === 'ios' ? 25 : 12,
+    paddingTop: 12,
+    paddingHorizontal: 20,
   },
   tab: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginHorizontal: 8,
   },
   label: {
     fontSize: 12,
-    marginTop: 3,
+    marginTop: 4,
     textAlign: 'center',
+    fontFamily: 'Inter_500Medium',
   },
 });
