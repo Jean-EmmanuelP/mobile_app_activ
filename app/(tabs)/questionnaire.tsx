@@ -63,6 +63,7 @@ function QuestionnaireContent() {
   const [additionalNotes, setAdditionalNotes] = useState<Record<number, string>>(reduxNotes);
   const [isCompleted, setIsCompleted] = useState(reduxIsCompleted);
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const snapPoints = useMemo(() => ['50%', '75%'], []);
@@ -495,11 +496,11 @@ function QuestionnaireContent() {
     // Si c'est la dernière section, soumettre le questionnaire
     if (currentSectionIndex === sectionsWithQuestions.length - 1) {
       Alert.alert(
-        'Confirmer la soumission',
-        'Êtes-vous sûr de vouloir soumettre le questionnaire ?',
+        'Finaliser le questionnaire',
+        'Vous pourrez toujours revenir sur ce questionnaire pour le modifier par la suite, même en présence de votre médecin.',
         [
           { text: 'Annuler', style: 'cancel' },
-          { text: 'Soumettre', onPress: submitQuestionnaire }
+          { text: 'Finaliser', onPress: submitQuestionnaire }
         ]
       );
     } else {
@@ -576,14 +577,14 @@ function QuestionnaireContent() {
       console.log('===============');
       
       // LIGNE À DÉCOMMENTER POUR EMPÊCHER LA SOUMISSION RÉELLE
-      return; // Décommentez cette ligne pour tester sans soumettre
+      // return; // Décommentez cette ligne pour tester sans soumettre
       
       // Mettre à jour le statut de la submission
       const currentCount = submission.submission_count || 0;
       const { error } = await supabase
         .from('submissions')
         .update({
-          status: 'submitted',
+          status: 'saved',
           submission_count: currentCount + 1,
           updated_at: new Date().toISOString(),
         } as any)
@@ -619,28 +620,45 @@ function QuestionnaireContent() {
             <Text style={styles.checkmark}>✓</Text>
           </View>
           <ThemedText type="title" style={styles.completedTitle}>
-            Questionnaire complété !
+            Questionnaire sauvegardé !
           </ThemedText>
           <ThemedText style={styles.completedDescription}>
-            Votre questionnaire a été soumis avec succès.
+            Votre questionnaire a été sauvegardé avec succès. Vous pouvez y revenir à tout moment pour le modifier, le compléter à nouveau ou mettre à jour vos réponses.
           </ThemedText>
           
           <View style={styles.secureKeyContainer}>
-            <Text style={styles.secureKeyLabel}>Votre code sécurisé</Text>
+            <Text style={styles.secureKeyLabel}>Code de soumission pour votre médecin</Text>
             <TouchableOpacity onPress={() => submission?.secure_key && Clipboard.setStringAsync(submission.secure_key)}>
-              <Text style={styles.secureKeyValue}>{submission?.secure_key}</Text>
+              <Text style={styles.secureKeyValue}>
+                {submission?.secure_key ? submission.secure_key.substring(0, 4) : '****'}
+              </Text>
             </TouchableOpacity>
             <Text style={styles.secureKeyHint}>
-              Communiquez ce code à votre médecin pour qu'il puisse accéder à vos réponses
+              Transmettez ces 4 premiers chiffres à votre médecin
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.homeButton}
-            onPress={() => router.push('/(tabs)')}
-          >
-            <Text style={styles.homeButtonText}>Retour à l'accueil</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.modifyButton]}
+              onPress={() => {
+                setIsCompleted(false);
+                dispatch(setCompleted(false));
+              }}
+            >
+              <Text style={styles.modifyButtonText}>Modifier le questionnaire</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.actionButton, styles.homeButton]}
+              onPress={() => {
+                setShowSaveModal(true);
+                  router.push('/(tabs)');
+              }}
+            >
+              <Text style={styles.homeButtonText}>Retour à l'accueil</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         </ThemedView>
     );
@@ -783,6 +801,16 @@ function QuestionnaireContent() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Modal de notification en haut */}
+      {showSaveModal && (
+        <View style={styles.topModal}>
+          <View style={styles.topModalContent}>
+            <Text style={styles.topModalIcon}>✓</Text>
+            <Text style={styles.topModalText}>Questionnaire sauvegardé</Text>
+          </View>
+        </View>
+      )}
       </ThemedView>
   );
 }
@@ -1078,14 +1106,65 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     textAlign: 'center',
   },
-  homeButton: {
-    backgroundColor: '#4A90E2',
+  buttonGroup: {
+    width: '100%',
+    marginTop: 20,
+    gap: 15,
+  },
+  actionButton: {
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 8,
-    marginTop: 20,
+    alignItems: 'center',
+  },
+  modifyButton: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+  },
+  modifyButtonText: {
+    color: '#4A90E2',
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  homeButton: {
+    backgroundColor: '#4A90E2',
   },
   homeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  topModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  topModalContent: {
+    backgroundColor: '#50C878',
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  topModalIcon: {
+    color: 'white',
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    marginRight: 10,
+  },
+  topModalText: {
     color: 'white',
     fontSize: 16,
     fontFamily: 'Inter_600SemiBold',

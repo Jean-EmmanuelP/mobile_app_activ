@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Dimensions, Text, View, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSharedValue } from "react-native-reanimated";
+import Animated, { useSharedValue, useDerivedValue, useAnimatedReaction, runOnJS, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import Carousel, {
   ICarouselInstance,
   Pagination,
@@ -10,9 +10,24 @@ import { useRouter, Link } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 
 const data = [
-  { id: 1, image: require('../assets/images/home/patient.jpg') },
-  { id: 2, image: require('../assets/images/home/patient.jpg') },
-  { id: 3, image: require('../assets/images/home/patient.jpg') },
+  { 
+    id: 1, 
+    image: require('../assets/images/home/waiting.jpg'),
+    title: "Prendre soin de sa santé",
+    description: "Un suivi personnalisé pour votre bien-être"
+  },
+  { 
+    id: 2, 
+    image: require('../assets/images/home/questionnaire.jpg'),
+    title: "Questionnaire interactif",
+    description: "Remplissez votre bilan de santé en quelques minutes"
+  },
+  { 
+    id: 3, 
+    image: require('../assets/images/home/medecin.jpeg'),
+    title: "Consultation médicale",
+    description: "Partagez vos résultats avec votre médecin"
+  },
 ];
 
 const width = Dimensions.get("window").width;
@@ -22,6 +37,9 @@ function WelcomeScreenContent() {
   const router = useRouter();
   const ref = React.useRef<ICarouselInstance>(null);
   const progress = useSharedValue<number>(0);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const textOpacity = useSharedValue(1);
+  const textTranslateY = useSharedValue(0);
   
   const onPressPagination = (index: number) => {
     ref.current?.scrollTo({
@@ -30,9 +48,66 @@ function WelcomeScreenContent() {
     });
   };
 
+  const onSnapToItem = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  // Fonction pour changer l'index avec animation
+  const changeIndexWithAnimation = React.useCallback((newIndex: number) => {
+    // Animation de sortie
+    textOpacity.value = withTiming(0, { 
+      duration: 150, 
+      easing: Easing.out(Easing.ease) 
+    });
+    textTranslateY.value = withTiming(-20, { 
+      duration: 150, 
+      easing: Easing.out(Easing.ease) 
+    });
+    
+    // Changer l'index après l'animation de sortie
+    setTimeout(() => {
+      setCurrentIndex(newIndex);
+      
+      // Animation d'entrée
+      textTranslateY.value = 20;
+      textOpacity.value = withTiming(1, { 
+        duration: 150, 
+        easing: Easing.out(Easing.ease) 
+      });
+      textTranslateY.value = withTiming(0, { 
+        duration: 150, 
+        easing: Easing.out(Easing.ease) 
+      });
+    }, 150);
+  }, [textOpacity, textTranslateY]);
+
+  // Réaction immédiate basée sur le progrès avec animation
+  useAnimatedReaction(
+    () => {
+      // Changement au milieu de la transition (0.5) pour plus de réactivité
+      const currentSlide = Math.floor(progress.value + 0.5);
+      return currentSlide;
+    },
+    (currentValue, previousValue) => {
+      if (currentValue !== previousValue) {
+        const newIndex = currentValue % data.length;
+        runOnJS(changeIndexWithAnimation)(newIndex);
+      }
+    },
+    [data.length, changeIndexWithAnimation]
+  );
+
   const handlePatientChoice = () => {
     router.push('/(tabs)');
   };
+
+  // Style animé pour le texte
+  const animatedTextStyle = useAnimatedStyle(() => {
+    return {
+      opacity: textOpacity.value,
+      transform: [{ translateY: textTranslateY.value }],
+    };
+  });
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
@@ -44,13 +119,14 @@ function WelcomeScreenContent() {
           height={width * 0.7}
           data={data}
           onProgressChange={progress}
+          onSnapToItem={onSnapToItem}
           renderItem={({ item }) => (
             <View style={styles.carouselItem}>
               <Image source={item.image} style={styles.carouselImage} />
             </View>
           )}
           autoPlay={true}
-          autoPlayInterval={2000}
+          autoPlayInterval={3000}
           loop={true}
         />
    
@@ -62,6 +138,16 @@ function WelcomeScreenContent() {
           containerStyle={styles.paginationContainer}
           onPress={onPressPagination}
         />
+        
+        {/* Texte descriptif */}
+        <Animated.View style={[styles.textSection, animatedTextStyle]}>
+          <Text style={styles.slideTitle}>
+            {data[currentIndex]?.title}
+          </Text>
+          <Text style={styles.slideDescription}>
+            {data[currentIndex]?.description}
+          </Text>
+        </Animated.View>
       </View>
 
       {/* Boutons en bas */}
@@ -104,6 +190,7 @@ const styles = StyleSheet.create({
   },
   carouselSection: {
     flex: 1,
+    paddingTop: Dimensions.get('window').height * 0.15,
   },
   carouselItem: {
     flex: 1,
@@ -131,7 +218,28 @@ const styles = StyleSheet.create({
   paginationContainer: {
     gap: 5,
     marginTop: 20,
+    marginBottom: 10,
+  },
+  textSection: {
+    paddingHorizontal: 20,
+    alignItems: 'center',
     marginBottom: 20,
+    minHeight: 80,
+    justifyContent: 'center',
+  },
+  slideTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  slideDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   bottomSection: {
     backgroundColor: 'white',
