@@ -9,13 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { TabScrollView } from '@/components/TabScrollView';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { 
-  setSubmission as setReduxSubmission, 
+import {
+  setSubmission as setReduxSubmission,
   setCompleted,
   setAnswers as setReduxAnswers,
   setAdditionalNotes as setReduxNotes,
@@ -35,6 +36,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Question from '@/components/Question';
+import StepByStepQuestionnaire from '@/components/StepByStepQuestionnaire';
 import {
   QuestionWithChildren,
   SectionWithQuestions,
@@ -63,18 +65,17 @@ function QuestionnaireContent() {
   const [additionalNotes, setAdditionalNotes] = useState<Record<number, string>>(reduxNotes);
   const [isCompleted, setIsCompleted] = useState(reduxIsCompleted);
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
-  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [useStepByStep, setUseStepByStep] = useState(true); // Toggle between modes
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const snapPoints = useMemo(() => ['50%', '75%'], []);
 
   // Callbacks pour la modal
   const handleSheetChanges = useCallback((index: number) => {
-    console.log('Modal sheet index:', index);
+    // Modal sheet index handler
   }, []);
 
   const handlePresentModal = useCallback((questionId: number) => {
-    console.log('Presenting modal for question:', questionId);
     setSelectedQuestionId(questionId);
     bottomSheetModalRef.current?.present();
   }, []);
@@ -224,7 +225,7 @@ function QuestionnaireContent() {
                   onConflict: 'submission_id,question_id'
                 });
             } catch (error) {
-              console.log('Error saving default value:', error);
+              // Error saving default value - silently continue
             }
           }
         }
@@ -268,7 +269,6 @@ function QuestionnaireContent() {
   };
 
   const handleAnswerChange = (questionId: number, value: string) => {
-    console.log(`Answer changed for question ${questionId}: ${value}`);
     dispatch(updateAnswer({ questionId, value }));
     setAnswers(prev => {
       const newAnswers = { ...prev, [questionId]: value };
@@ -295,7 +295,6 @@ function QuestionnaireContent() {
               // Utiliser les nouvelles réponses pour évaluer les conditions
               const shouldShow = evaluateCondition(child.condition, newAnswers[child.parent_id!], newAnswers);
               if (!shouldShow && newAnswers[child.id]) {
-                console.log(`Removing answer for hidden question ${child.id}: "${child.text}"`);
                 delete newAnswers[child.id];
                 // Supprimer aussi de la base de données
                 if (submission) {
@@ -370,13 +369,7 @@ function QuestionnaireContent() {
     const answer = answers[question.id] || '';
     const notes = additionalNotes[question.id] || '';
 
-    // Debug pour vérifier les sous-questions
-    if (question.children && question.children.length > 0) {
-      console.log(`Question ${question.id} "${question.text}" has ${question.children.length} children:`);
-      question.children.forEach(child => {
-        console.log(`  - Child ${child.id}: "${child.text}" (visible: ${shouldShowQuestion(child)})`);
-      });
-    }
+    // Check sub-questions visibility
 
     return (
       <Question
@@ -396,8 +389,7 @@ function QuestionnaireContent() {
             {question.children.map((child, index) => {
               // Vérifier explicitement si la sous-question doit être affichée
               const shouldShow = shouldShowQuestion(child);
-              console.log(`Child ${index + 1}/${question.children?.length || 0} of Q${question.id}: Q${child.id} "${child.text.substring(0, 30)}..." - visible: ${shouldShow}`);
-              
+
               if (!shouldShow) {
                 return null;
               }
@@ -420,23 +412,13 @@ function QuestionnaireContent() {
       shouldShowQuestion
     );
     
-    if (!isValid && missingQuestions.length > 0) {
-      console.log('=== QUESTIONS REQUISES MANQUANTES ===');
-      missingQuestions.forEach(q => {
-        console.log(`- Question ${q.id}: "${q.text}"`);
-        console.log(`  Type: ${q.type}, Parent: ${q.parent_id}, Visible: ${shouldShowQuestion(q)}`);
-        console.log(`  Réponse actuelle: ${answers[q.id] || 'AUCUNE'}`);
-      });
-      console.log('======================================');
-    }
+    // Validation completed
     
     return isValid;
   };
 
   const handleNextSection = () => {
     const currentSection = sectionsWithQuestions[currentSectionIndex];
-    console.log('Current section:', currentSection?.name, 'index:', currentSectionIndex);
-    console.log('Total sections:', sectionsWithQuestions.length);
     
     if (currentSection && currentSection.questions && currentSection.questions.length > 0) {
       if (!checkRequiredQuestions(currentSection.questions)) {
@@ -449,7 +431,6 @@ function QuestionnaireContent() {
     }
 
     if (currentSectionIndex < sectionsWithQuestions.length - 1) {
-      console.log('Moving to next section:', currentSectionIndex + 1);
       const newIndex = currentSectionIndex + 1;
       setCurrentSectionIndex(newIndex);
       dispatch(setReduxSectionIndex(newIndex));
@@ -562,19 +543,7 @@ function QuestionnaireContent() {
         answers: finalAnswers
       };
       
-      // Afficher le JSON dans la console
-      console.log('=== JSON DE SOUMISSION ===');
-      console.log(JSON.stringify(submissionData, null, 2));
-      console.log('=========================');
-      
-      // Afficher aussi un résumé
-      console.log('=== RÉSUMÉ ===');
-      console.log(`Nombre total de réponses: ${Object.keys(finalAnswers).length}`);
-      console.log(`Questions visibles répondues:`);
-      Object.values(finalAnswers).forEach((item: any) => {
-        console.log(`  - Q${item.question_id} (${item.question_type}): "${item.answer}"`);
-      });
-      console.log('===============');
+      // Submission data prepared
       
       // LIGNE À DÉCOMMENTER POUR EMPÊCHER LA SOUMISSION RÉELLE
       // return; // Décommentez cette ligne pour tester sans soumettre
@@ -651,10 +620,7 @@ function QuestionnaireContent() {
             
             <TouchableOpacity
               style={[styles.actionButton, styles.homeButton]}
-              onPress={() => {
-                setShowSaveModal(true);
-                  router.push('/(tabs)');
-              }}
+              onPress={() => router.push('/(tabs)')}
             >
               <Text style={styles.homeButtonText}>Retour à l'accueil</Text>
             </TouchableOpacity>
@@ -667,15 +633,148 @@ function QuestionnaireContent() {
   const currentSection = sectionsWithQuestions[currentSectionIndex];
   const isLastSection = currentSectionIndex === sectionsWithQuestions.length - 1;
 
+  // Step-by-step mode
+  if (useStepByStep) {
+    return (
+      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header with back arrow and toggle */}
+        <View style={styles.headerWithBack}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.push('/(tabs)')}
+          >
+            <Ionicons name="chevron-back" size={24} color="#4A90E2" />
+            <Text style={styles.backButtonText}>Accueil</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.toggleButton}
+            onPress={() => setUseStepByStep(false)}
+          >
+            <Text style={styles.toggleButtonText}>Vue classique</Text>
+          </TouchableOpacity>
+        </View>
+
+        <StepByStepQuestionnaire
+          sections={sectionsWithQuestions.map(section => ({
+            id: section.id,
+            name: section.name,
+            description: section.description,
+            questions: section.questions,
+          }))}
+          answers={answers}
+          additionalNotes={additionalNotes}
+          onAnswerChange={handleAnswerChange}
+          onNotesChange={handleNotesChange}
+          onOpenSelectModal={handlePresentModal}
+          onComplete={() => {
+            Alert.alert(
+              'Finaliser le questionnaire',
+              'Vous pourrez toujours revenir sur ce questionnaire pour le modifier par la suite, même en présence de votre médecin.',
+              [
+                { text: 'Annuler', style: 'cancel' },
+                { text: 'Finaliser', onPress: submitQuestionnaire }
+              ]
+            );
+          }}
+          isCompleted={isCompleted}
+        />
+
+        {/* Bottom Sheet Modal pour les selects */}
+        <BottomSheetModal
+          ref={bottomSheetModalRef}
+          index={0}
+          snapPoints={snapPoints}
+          onChange={handleSheetChanges}
+          enablePanDownToClose={true}
+          backdropComponent={renderBackdrop}
+          backgroundStyle={styles.modalBackground}
+          handleIndicatorStyle={styles.handleIndicator}
+          handleStyle={styles.handleStyle}
+        >
+          {selectedQuestionId && (() => {
+            // Chercher la question dans toutes les questions et sous-questions
+            const findQuestion = (questions: QuestionWithChildren[]): QuestionWithChildren | undefined => {
+              for (const q of questions) {
+                if (q.id === selectedQuestionId) return q;
+                if (q.children) {
+                  const found = findQuestion(q.children);
+                  if (found) return found;
+                }
+              }
+              return undefined;
+            };
+
+            const question = findQuestion(currentSection?.questions || []);
+
+            if (!question?.options) return null;
+
+            const options = parseSelectOptions(question.options);
+
+            return (
+              <BottomSheetFlatList
+                data={options}
+                keyExtractor={(item) => String(item.key)}
+                ListHeaderComponent={() => (
+                  <Text style={styles.bottomSheetTitle}>Choisir une option</Text>
+                )}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.bottomSheetOption,
+                      answers[selectedQuestionId] === item.key && styles.bottomSheetOptionActive
+                    ]}
+                    onPress={() => {
+                      handleAnswerChange(selectedQuestionId, String(item.key));
+                      bottomSheetModalRef.current?.dismiss();
+                      setSelectedQuestionId(null);
+                    }}
+                  >
+                    <Text style={[
+                      styles.bottomSheetOptionText,
+                      answers[selectedQuestionId] === item.key && styles.bottomSheetOptionTextActive
+                    ]}>
+                      {String(item.value)}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                contentContainerStyle={styles.bottomSheetContent}
+              />
+            );
+          })()}
+        </BottomSheetModal>
+      </ThemedView>
+    );
+  }
+
+  // Classic mode
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
+        {/* Header with back arrow and toggle */}
+        <View style={styles.headerWithBack}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.push('/(tabs)')}
+          >
+            <Ionicons name="chevron-back" size={24} color="#4A90E2" />
+            <Text style={styles.backButtonText}>Accueil</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.toggleButton}
+            onPress={() => setUseStepByStep(true)}
+          >
+            <Text style={styles.toggleButtonText}>Vue step-by-step</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.header}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
+              styles.progressFill,
               { width: `${((currentSectionIndex + 1) / sectionsWithQuestions.length) * 100}%` }
-            ]} 
+            ]}
           />
         </View>
         <ThemedText type="subtitle">
@@ -693,7 +792,7 @@ function QuestionnaireContent() {
         )}
       </View>
 
-      <TabScrollView 
+      <TabScrollView
         style={styles.scrollView}
         ref={scrollViewRef}
         showsVerticalScrollIndicator={true}
@@ -701,10 +800,9 @@ function QuestionnaireContent() {
         {currentSection?.description && (
           <Text style={styles.sectionDescription}>{currentSection.description}</Text>
         )}
-        
+
         <View>
           {currentSection?.questions.map((question, index) => {
-            console.log(`Rendering top-level question ${index + 1}/${currentSection.questions.length}: ${question.text}`);
             return (
               <View key={question.id}>
                 {renderQuestion(question, 0)}
@@ -801,16 +899,6 @@ function QuestionnaireContent() {
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Modal de notification en haut */}
-      {showSaveModal && (
-        <View style={styles.topModal}>
-          <View style={styles.topModalContent}>
-            <Text style={styles.topModalIcon}>✓</Text>
-            <Text style={styles.topModalText}>Questionnaire sauvegardé</Text>
-          </View>
-        </View>
-      )}
       </ThemedView>
   );
 }
@@ -1135,39 +1223,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter_600SemiBold',
   },
-  topModal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    paddingTop: 60,
+  headerWithBack: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  topModalContent: {
-    backgroundColor: '#50C878',
-    borderRadius: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
-  topModalIcon: {
-    color: 'white',
-    fontSize: 18,
-    fontFamily: 'Inter_700Bold',
-    marginRight: 10,
-  },
-  topModalText: {
-    color: 'white',
+  backButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    color: '#4A90E2',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  toggleButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '600',
   },
 });
 

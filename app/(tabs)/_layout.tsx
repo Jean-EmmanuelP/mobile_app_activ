@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import React from 'react';
 import { View, Text, TouchableOpacity, Animated, Platform, StyleSheet } from 'react-native';
 import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
@@ -11,6 +11,12 @@ import QuestionnaireIcon from '@/components/svg/QuestionnaireIcon';
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { translateY } = useTabBar();
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+
+  // Hide tab bar on questionnaire screen
+  if (pathname === '/questionnaire') {
+    return null;
+  }
 
   return (
     <Animated.View
