@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
@@ -7,6 +7,7 @@ import { RootState } from '@/store';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { TabScrollView } from '@/components/TabScrollView';
+import { Video } from 'expo-av';
 
 function HomeScreenContent() {
   const insets = useSafeAreaInsets();
@@ -15,16 +16,36 @@ function HomeScreenContent() {
   const isCompleted = useSelector((state: RootState) => state.questionnaire.isCompleted);
   const secureKey = useSelector((state: RootState) => state.questionnaire.secureKey);
 
+  // Function to mask secure code
+  const maskSecureCode = (code: string | null | undefined): string => {
+    if (!code || code.length < 8) {
+      return 'Clé';
+    }
+    const first4 = code.substring(0, 4);
+    const last4 = code.substring(code.length - 4);
+    return `${first4}...${last4}`;
+  };
+
+  // Function to get greeting with name
+  const getGreeting = (): string => {
+    if (submission?.patient_info) {
+      const { first_name, last_name } = submission.patient_info as any;
+      if (first_name && last_name) {
+        return `Bonjour ${first_name} ${last_name}!`;
+      } else if (first_name) {
+        return `Bonjour ${first_name}!`;
+      } else if (last_name) {
+        return `Bonjour ${last_name}!`;
+      }
+    }
+    return 'Bonjour!';
+  };
+
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
         <TabScrollView>
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Tableau de bord
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Bienvenue sur votre espace santé
-          </ThemedText>
+          <Text style={styles.title}>{getGreeting()}</Text>
         </View>
 
         <View style={styles.card}>
@@ -38,14 +59,14 @@ function HomeScreenContent() {
                   styles.statusValue,
                   isCompleted ? styles.statusCompleted : styles.statusInProgress
                 ]}>
-                  {isCompleted ? '✓ Complété' : '⏳ En cours'}
+                  {isCompleted ? 'Complété' : 'En cours'}
                 </Text>
               </View>
 
               {secureKey && (
-                <View style={styles.codeContainer}>
+                <View>
                   <Text style={styles.codeLabel}>Code sécurisé:</Text>
-                  <Text style={styles.codeValue}>{secureKey}</Text>
+                  <Text style={styles.codeValue}>{maskSecureCode(secureKey)}</Text>
                 </View>
               )}
 
@@ -68,7 +89,7 @@ function HomeScreenContent() {
                 onPress={() => router.push('/(tabs)/questionnaire')}
               >
                 <Text style={styles.buttonText}>
-                  Commencer le questionnaire
+                  Commencer la session
                 </Text>
               </TouchableOpacity>
             </View>
@@ -80,7 +101,7 @@ function HomeScreenContent() {
             <Text style={styles.cardTitle}>Prochaines étapes</Text>
             <Text style={styles.infoText}>
               Votre questionnaire a été soumis avec succès. 
-              Partagez votre code sécurisé avec votre médecin pour qu'il puisse accéder à vos réponses.
+              Partagez votre code sécurisé avec votre médecin pour qu&pos;il puisse accéder à vos réponses.
             </Text>
           </View>
         )}
@@ -103,32 +124,51 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   header: {
+    marginTop: Dimensions.get('window').height * 0.03,
     paddingHorizontal: 20,
     marginBottom: 30,
   },
+  greeting: {
+    fontSize: 28,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 8,
+  },
   title: {
     fontSize: 32,
-    marginBottom: 10,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    fontFamily: 'NotoIkea',
+    color: '#000000',
   },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
+  videoContainer: {
+    height: 200,
+    width: '100%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 15,
+  },
+  video: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(135, 206, 235, 0.3)',
   },
   card: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginBottom: 20,
     padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   cardTitle: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     marginBottom: 15,
     color: '#2c3e50',
   },
@@ -139,60 +179,58 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 16,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'NotoIkea',
     marginRight: 10,
     color: '#666',
   },
   statusValue: {
     fontSize: 16,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
   },
   statusCompleted: {
-    color: '#50C878',
+    color: 'green',
   },
   statusInProgress: {
-    color: '#FFA500',
+    color: 'black',
   },
   codeContainer: {
-    backgroundColor: '#f5f5f5',
-    padding: 15,
-    borderRadius: 10,
     marginVertical: 15,
   },
   codeLabel: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     marginBottom: 5,
   },
   codeValue: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     color: '#4A90E2',
     letterSpacing: 1,
   },
   button: {
-    backgroundColor: '#4A90E2',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 50,
     alignItems: 'center',
     marginTop: 15,
   },
   buttonText: {
     color: 'white',
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
   noQuestionnaireText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     textAlign: 'center',
     marginVertical: 20,
   },
   infoText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     lineHeight: 20,
   },

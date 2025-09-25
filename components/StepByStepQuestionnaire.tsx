@@ -173,7 +173,7 @@ export default function StepByStepQuestionnaire({
     return (
       <View style={styles.completedContainer}>
         <View style={styles.successIcon}>
-          <Ionicons name="checkmark" size={40} color="white" />
+          <Text style={styles.checkmark}>✓</Text>
         </View>
         <Text style={styles.completedTitle}>Questionnaire terminé !</Text>
         <Text style={styles.completedDescription}>
@@ -189,11 +189,8 @@ export default function StepByStepQuestionnaire({
       <View style={styles.header}>
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <LinearGradient
-              colors={['#667eea', '#764ba2']}
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+            <View
+              style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: '#000000' }]}
             />
           </View>
           <Text style={styles.progressText}>
@@ -243,11 +240,6 @@ export default function StepByStepQuestionnaire({
           onPress={goToPrevious}
           disabled={currentQuestionIndex === 0}
         >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={currentQuestionIndex === 0 ? '#ccc' : '#667eea'}
-          />
           <Text style={[
             styles.navButtonText,
             currentQuestionIndex === 0 && styles.navButtonTextDisabled
@@ -272,11 +264,6 @@ export default function StepByStepQuestionnaire({
           ]}>
             {currentQuestionIndex === totalQuestions - 1 ? 'Terminer' : 'Suivant'}
           </Text>
-          <Ionicons
-            name={currentQuestionIndex === totalQuestions - 1 ? 'checkmark' : 'chevron-forward'}
-            size={24}
-            color={!canProceed ? '#ccc' : 'white'}
-          />
         </TouchableOpacity>
       </View>
 
@@ -311,8 +298,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: '#e9ecef',
+    height: 4,
+    backgroundColor: '#f0f0f0',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
@@ -322,15 +309,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
-    fontSize: 14,
-    color: '#6c757d',
-    fontWeight: '600',
+    fontSize: 12,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
     textAlign: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2d3436',
+    fontSize: 16,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#000000',
     textAlign: 'center',
   },
   questionContent: {
@@ -344,40 +333,43 @@ const styles = StyleSheet.create({
   },
   navigation: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    backgroundColor: 'white',
+    padding: 15,
+    paddingBottom: Dimensions.get('window').height * 0.04,
+    gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
-    gap: 16,
+    borderTopColor: '#d0d0d0',
+    backgroundColor: '#ffffff',
   },
   navButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 50,
+    gap: 6,
   },
   prevButton: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8f8f8',
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#e0e0e0',
   },
   nextButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#000000',
   },
   navButtonDisabled: {
     opacity: 0.5,
   },
   navButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#667eea',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
   },
   nextButtonText: {
     color: 'white',
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
   navButtonTextDisabled: {
     color: '#ccc',
@@ -389,8 +381,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   skipButtonText: {
-    fontSize: 14,
-    color: '#6c757d',
+    fontSize: 12,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#999999',
     textDecorationLine: 'underline',
   },
   completedContainer: {
@@ -401,25 +395,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#28a745',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 32,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
   completedTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2d3436',
-    marginBottom: 12,
+    fontSize: 20,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 10,
     textAlign: 'center',
   },
   completedDescription: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
   },
 });

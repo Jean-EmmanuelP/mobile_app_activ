@@ -2,7 +2,6 @@ import { Tabs, usePathname } from 'expo-router';
 import React from 'react';
 import { View, Text, TouchableOpacity, Animated, Platform, StyleSheet } from 'react-native';
 import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import HomeIcon from '@/components/svg/HomeIcon';
@@ -10,7 +9,6 @@ import QuestionnaireIcon from '@/components/svg/QuestionnaireIcon';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { translateY } = useTabBar();
-  const colorScheme = useColorScheme();
   const pathname = usePathname();
 
   // Hide tab bar on questionnaire screen
@@ -22,9 +20,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     <Animated.View
       style={[
         styles.tabContainer,
-        {
-          transform: [{ translateY }],
-        },
+        // {
+        //   transform: [{ translateY }],
+        // },
       ]}
     >
       <View style={styles.tabBar}>
@@ -45,9 +43,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }
           };
 
-          const color = isFocused 
-            ? Colors[colorScheme ?? 'light'].tint 
-            : '#999';
+          const color = isFocused
+            ? '#000000'
+            : '#999999';
 
           const Icon = options.tabBarIcon;
 
@@ -83,15 +81,13 @@ function TabLayoutContent() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
-          tabBarIcon: ({ color }) => <HomeIcon width={28} height={28} fill={color} />,
+          tabBarIcon: ({ color }) => <HomeIcon width={22} height={22} fill={color} />,
         }}
       />
       <Tabs.Screen
         name="questionnaire"
         options={{
-          title: 'Questionnaire',
-          tabBarIcon: ({ color }) => <QuestionnaireIcon width={28} height={28} fill={color} />,
+          tabBarIcon: ({ color }) => <QuestionnaireIcon width={22} height={22} fill={color} />,
         }}
       />
     </Tabs>
@@ -113,22 +109,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 10,
+    borderTopWidth: 1.2,
+    borderTopColor: '#d0d0d0',
+    elevation: 20,
   },
   tabBar: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 90 : 70,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 12,
-    paddingTop: 12,
+    height: Platform.OS === 'ios' ? 60 : 60,
+    paddingTop: 8,
     paddingHorizontal: 20,
   },
   tab: {
@@ -138,9 +126,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   label: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 3,
     textAlign: 'center',
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
 });

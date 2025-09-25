@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -643,8 +644,7 @@ function QuestionnaireContent() {
             style={styles.backButton}
             onPress={() => router.push('/(tabs)')}
           >
-            <Ionicons name="chevron-back" size={24} color="#4A90E2" />
-            <Text style={styles.backButtonText}>Accueil</Text>
+            <Ionicons name="chevron-back" size={20} color="#000000" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -749,15 +749,14 @@ function QuestionnaireContent() {
 
   // Classic mode
   return (
-    <ThemedView style={[styles.container, { paddingTop: insets.top + 20 }]}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header with back arrow and toggle */}
         <View style={styles.headerWithBack}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.push('/(tabs)')}
           >
-            <Ionicons name="chevron-back" size={24} color="#4A90E2" />
-            <Text style={styles.backButtonText}>Accueil</Text>
+            <Ionicons name="chevron-back" size={20} color="#000000" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -915,32 +914,35 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#d0d0d0',
+    backgroundColor: '#ffffff',
   },
   progress: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    opacity: 0.6,
+    fontSize: 12,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
     marginTop: 5,
   },
   progressBar: {
-    height: 4,
-    backgroundColor: '#e0e0e0',
+    height: 3,
+    backgroundColor: '#f0f0f0',
     borderRadius: 2,
-    marginBottom: 15,
+    marginBottom: 12,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#000000',
     borderRadius: 2,
   },
   secureKeyHeader: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#4A90E2',
+    fontSize: 11,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
     marginTop: 5,
   },
   scrollView: {
@@ -948,11 +950,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionDescription: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    opacity: 0.7,
-    marginTop: 15,
-    marginBottom: 10,
+    fontSize: 13,
+    fontFamily: 'NotoIkea',
+    color: '#666666',
+    marginTop: 12,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   questionContainer: {
     marginVertical: 15,
@@ -967,7 +970,7 @@ const styles = StyleSheet.create({
   },
   groupTitle: {
     fontSize: 17,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'NotoIkea',
     marginBottom: 5,
     color: '#2c3e50',
   },
@@ -979,22 +982,22 @@ const styles = StyleSheet.create({
   },
   groupStatusText: {
     fontSize: 14,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'NotoIkea',
     color: '#4A90E2',
   },
   questionText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     marginBottom: 10,
   },
   subQuestionText: {
     fontSize: 15,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     fontStyle: 'italic',
   },
   questionNotes: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     opacity: 0.6,
     marginTop: 5,
     marginBottom: 5,
@@ -1021,11 +1024,11 @@ const styles = StyleSheet.create({
   },
   yesnoText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
   yesnoTextActive: {
     color: 'white',
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
   },
   textInput: {
     borderWidth: 1,
@@ -1034,7 +1037,7 @@ const styles = StyleSheet.create({
     padding: 10,
     minHeight: 50,
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
   selectInput: {
     flexDirection: 'row',
@@ -1048,7 +1051,7 @@ const styles = StyleSheet.create({
   },
   selectInputText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     flex: 1,
   },
   selectInputPlaceholder: {
@@ -1056,7 +1059,7 @@ const styles = StyleSheet.create({
   },
   selectInputArrow: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     marginLeft: 10,
   },
@@ -1065,7 +1068,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetTitle: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     marginBottom: 20,
     marginTop: 10,
     textAlign: 'center',
@@ -1089,11 +1092,11 @@ const styles = StyleSheet.create({
   },
   bottomSheetOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
   bottomSheetOptionTextActive: {
     color: '#4A90E2',
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'NotoIkea',
   },
   notesInput: {
     marginTop: 10,
@@ -1103,35 +1106,40 @@ const styles = StyleSheet.create({
     padding: 8,
     minHeight: 40,
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    padding: 15,
+    paddingBottom: Dimensions.get('window').height * 0.04,
+    gap: 8,
+    backgroundColor: '#ffffff',
   },
   navButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderRadius: 50,
+    backgroundColor: '#f8f8f8',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   navButtonPrimary: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#000000',
   },
   navButtonDisabled: {
     opacity: 0.5,
   },
   navButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
   },
   navButtonTextPrimary: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
     color: 'white',
   },
   completedContainer: {
@@ -1152,46 +1160,53 @@ const styles = StyleSheet.create({
   checkmark: {
     color: 'white',
     fontSize: 40,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
   },
   completedTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter_700Bold',
-    marginBottom: 10,
+    fontSize: 20,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    marginBottom: 8,
     textAlign: 'center',
+    color: '#000000',
   },
   completedDescription: {
-    fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    opacity: 0.7,
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    color: '#666666',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
+    lineHeight: 20,
   },
   secureKeyContainer: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 15,
-    padding: 20,
-    marginVertical: 20,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 16,
     width: '100%',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   secureKeyLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    opacity: 0.6,
-    marginBottom: 10,
+    fontSize: 12,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#666666',
+    marginBottom: 8,
   },
   secureKeyValue: {
-    fontSize: 20,
-    fontFamily: 'Inter_700Bold',
-    color: '#4A90E2',
-    letterSpacing: 1,
-    marginBottom: 10,
+    fontSize: 18,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
+    color: '#000000',
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   secureKeyHint: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    opacity: 0.5,
+    fontSize: 11,
+    fontFamily: 'NotoIkea',
+    color: '#999999',
     textAlign: 'center',
   },
   buttonGroup: {
@@ -1200,59 +1215,57 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   actionButton: {
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 8,
+    paddingHorizontal: 25,
+    paddingVertical: 12,
+    borderRadius: 50,
     alignItems: 'center',
   },
   modifyButton: {
     backgroundColor: '#f8f9fa',
     borderWidth: 2,
-    borderColor: '#4A90E2',
+    borderColor: '#000000',
   },
   modifyButtonText: {
-    color: '#4A90E2',
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    color: '#000000',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
   homeButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#000000',
   },
   homeButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
   headerWithBack: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#d0d0d0',
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: '600',
-    marginLeft: 4,
+    padding: 8,
+    borderRadius: 50,
+    backgroundColor: '#f8f8f8',
   },
   toggleButton: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
   },
   toggleButtonText: {
-    fontSize: 14,
-    color: '#4A90E2',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#000000',
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
   },
 });
 

@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     color: '#333',
   },
   closeButton: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
   },
   scrollView: {
@@ -230,28 +230,28 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     color: '#333',
     marginTop: 20,
     marginBottom: 10,
   },
   subSectionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'NotoIkea',
     color: '#444',
     marginTop: 15,
     marginBottom: 8,
   },
   dateText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     marginBottom: 15,
     fontStyle: 'italic',
   },
   bodyText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     lineHeight: 20,
     color: '#555',
     marginBottom: 15,

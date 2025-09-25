@@ -98,7 +98,7 @@ function WelcomeScreenContent() {
   );
 
   const handlePatientChoice = () => {
-    router.push('/(tabs)');
+    router.push('/pre-intake');
   };
 
   // Style animé pour le texte
@@ -198,7 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   carouselImage: {
-    borderRadius: 40,
     width: '85%',
     height: '100%',
     resizeMode: 'cover',
@@ -229,14 +228,14 @@ const styles = StyleSheet.create({
   },
   slideTitle: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     color: '#2c3e50',
     textAlign: 'center',
     marginBottom: 8,
   },
   slideDescription: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
@@ -246,32 +245,28 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   buttonContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     marginBottom: 20,
   },
   button: {
-    padding: 25,
-    borderRadius: 15,
+    padding: 20,
+    borderRadius: 50,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   patientButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#000000',
   },
   buttonText: {
     color: 'white',
     fontSize: 20,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
     marginBottom: 5,
   },
   buttonDescription: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
+    fontWeight: 'bold',
     textAlign: 'center',
   },
   footer: {
@@ -283,7 +278,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
     color: '#666',
     textDecorationLine: 'underline',
     textAlign: 'center',

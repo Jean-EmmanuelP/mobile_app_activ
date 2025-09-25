@@ -37,26 +37,26 @@ const styles = StyleSheet.create({
   default: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
   defaultSemiBold: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'NotoIkea',
   },
   title: {
     fontSize: 32,
     lineHeight: 32,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'NotoIkea',
   },
   subtitle: {
     fontSize: 20,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'NotoIkea',
   },
   link: {
     lineHeight: 30,
     fontSize: 16,
     color: '#0a7ea4',
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'NotoIkea',
   },
 });

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,30 +8,11 @@ import 'react-native-reanimated';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '@/store';
-import {
-  Inter_100Thin,
-  Inter_200ExtraLight,
-  Inter_300Light,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-  Inter_900Black,
-} from '@expo-google-fonts/inter';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    Inter_100Thin,
-    Inter_200ExtraLight,
-    Inter_300Light,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
-    Inter_900Black,
+    NotoIkea: require('@/assets/fonts/Noto_Ikea_400.woff2'),
   });
 
   if (!loaded) {
@@ -45,12 +26,12 @@ export default function RootLayout() {
     
     Text.defaultProps = {
       ...Text.defaultProps,
-      style: [{ fontFamily: 'Inter_400Regular' }, defaultTextStyle],
+      style: [{ fontFamily: 'NotoIkea' }, defaultTextStyle],
     };
-    
+
     TextInput.defaultProps = {
       ...TextInput.defaultProps,
-      style: [{ fontFamily: 'Inter_400Regular' }, defaultTextInputStyle],
+      style: [{ fontFamily: 'NotoIkea' }, defaultTextInputStyle],
     };
   }
 
@@ -62,13 +43,14 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="welcome" options={{ headerShown: false }} />
+              <Stack.Screen name="pre-intake" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="terms-modal" 
-                options={{ 
+              <Stack.Screen
+                name="terms-modal"
+                options={{
                   presentation: 'modal',
-                  headerShown: false 
-                }} 
+                  headerShown: false
+                }}
               />
               <Stack.Screen name="+not-found" />
             </Stack>
