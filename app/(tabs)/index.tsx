@@ -89,7 +89,7 @@ function HomeScreenContent() {
                 onPress={() => router.push('/(tabs)/questionnaire')}
               >
                 <Text style={styles.buttonText}>
-                  Commencer la session
+                  Commencer le questionnaire
                 </Text>
               </TouchableOpacity>
             </View>
@@ -101,7 +101,7 @@ function HomeScreenContent() {
             <Text style={styles.cardTitle}>Prochaines étapes</Text>
             <Text style={styles.infoText}>
               Votre questionnaire a été soumis avec succès. 
-              Partagez votre code sécurisé avec votre médecin pour qu&pos;il puisse accéder à vos réponses.
+              Partagez votre code sécurisé avec votre médecin pour qu&apos;il puisse accéder à vos réponses.
             </Text>
           </View>
         )}

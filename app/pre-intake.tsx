@@ -138,7 +138,7 @@ function PreIntakeScreenContent() {
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.submitButtonText}>Commencer le questionnaire</Text>
+                <Text style={styles.submitButtonText}>Commencer la session</Text>
               )}
             </TouchableOpacity>
 
